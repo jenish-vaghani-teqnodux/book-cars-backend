@@ -71,7 +71,7 @@ const syncLanguageValues = async <T extends { values: (mongoose.Types.ObjectId |
           update: { $push: { values: { $each: pushIds } } },
         },
       }))
-      await collection.bulkWrite(bulkOps)
+      await collection.bulkWrite(bulkOps as any)
       logger.info(`Updated ${updates.length} ${label} documents with new language values`)
     }
 
