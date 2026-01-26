@@ -1,4 +1,6 @@
 import 'dotenv/config'
+
+import dns from 'node:dns/promises'
 import process from 'node:process'
 import fs from 'node:fs/promises'
 import http from 'node:http'
@@ -40,6 +42,10 @@ const shutdownTimeoutMs = 10_000
  * Starts the server and sets up graceful shutdown handlers.
  */
 const start = async (): Promise<void> => {
+  if(process.env.NODE_ENV !== 'production'){
+    dns.setServers(['1.1.1.1'])
+  }
+
   try {
     const connected = await databaseHelper.connect(env.DB_URI, env.DB_SSL, env.DB_DEBUG)
     const initialized = await databaseHelper.initialize()
