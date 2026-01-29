@@ -1,5 +1,4 @@
 import path from 'node:path'
-import asyncFs from 'node:fs/promises'
 import escapeStringRegexp from 'escape-string-regexp'
 import { Request, Response } from 'express'
 import mongoose from 'mongoose'
@@ -17,6 +16,7 @@ import DateBasedPrice from '../models/DateBasedPrice'
 import * as helper from '../utils/helper'
 import * as logger from '../utils/logger'
 import Location from '../models/Location'
+import { deleteFile, uploadFile } from 'src/utils/s3Helper'
 
 /**
  * Validate Supplier by fullname.
@@ -138,20 +138,14 @@ export const deleteSupplier = async (req: Request, res: Response) => {
     if (supplier) {
       await User.deleteOne({ _id: id })
 
-      if (supplier.avatar) {
-        const avatar = path.join(env.CDN_USERS, supplier.avatar)
-        if (await helper.pathExists(avatar)) {
-          await asyncFs.unlink(avatar)
-        }
-      }
+      if (supplier.avatar) {        
+      await deleteFile(supplier.avatar)
+    }
 
       if (supplier.contracts && supplier.contracts.length > 0) {
         for (const contract of supplier.contracts) {
-          if (contract.file) {
-            const file = path.join(env.CDN_CONTRACTS, contract.file)
-            if (await helper.pathExists(file)) {
-              await asyncFs.unlink(file)
-            }
+          if (contract.file) {            
+            await deleteFile(contract.file)
           }
         }
       }
@@ -168,18 +162,15 @@ export const deleteSupplier = async (req: Request, res: Response) => {
       ).map((b) => b._additionalDriver)
       await AdditionalDriver.deleteMany({ _id: { $in: additionalDrivers } })
       await Booking.deleteMany({ supplier: id })
-      const cars = await Car.find({ supplier: id })
+      const cars = await Car.find({ supplier: id })      
       await Car.deleteMany({ supplier: id })
       for (const car of cars) {
         if (car.dateBasedPrices?.length > 0) {
           await DateBasedPrice.deleteMany({ _id: { $in: car.dateBasedPrices } })
         }
 
-        if (car.image) {
-          const image = path.join(env.CDN_CARS, car.image)
-          if (await helper.pathExists(image)) {
-            await asyncFs.unlink(image)
-          }
+        if (car.image) {          
+          await deleteFile(car.image)
         }
       }
     } else {
@@ -781,10 +772,12 @@ export const createContract = async (req: Request, res: Response) => {
       throw new Error('Language not valid')
     }
 
-    const filename = `${nanoid()}_${language}${path.extname(req.file.originalname)}`
-    const filepath = path.join(env.CDN_TEMP_CONTRACTS, filename)
-
-    await asyncFs.writeFile(filepath, req.file.buffer)
+    const filename = `contacts/${nanoid()}_${language}${path.extname(req.file.originalname)}`
+    await uploadFile(
+          filename,
+          req.file.buffer,
+          req.file.mimetype
+        )
     res.json(filename)
   } catch (err) {
     logger.error(`[supplier.createContract] ${i18n.t('DB_ERROR')}`, err)
@@ -824,16 +817,15 @@ export const updateContract = async (req: Request, res: Response) => {
     if (supplier) {
       const contract = supplier.contracts?.find((c) => c.language === language)
       if (contract?.file) {
-        const contractFile = path.join(env.CDN_CONTRACTS, contract.file)
-        if (await helper.pathExists(contractFile)) {
-          await asyncFs.unlink(contractFile)
-        }
+        await deleteFile(contract.file)
       }
+      const filename = `contracts/${supplier._id}_${language}${path.extname(file.originalname)}`
+      await uploadFile(
+        filename, 
+        file.buffer, 
+        file.mimetype
+      )
 
-      const filename = `${supplier._id}_${language}${path.extname(file.originalname)}`
-      const filepath = path.join(env.CDN_CONTRACTS, filename)
-
-      await asyncFs.writeFile(filepath, file.buffer)
       if (!contract) {
         supplier.contracts?.push({ language, file: filename })
       } else {
@@ -875,10 +867,7 @@ export const deleteContract = async (req: Request, res: Response) => {
     if (supplier) {
       const contract = supplier.contracts?.find((c) => c.language === language)
       if (contract?.file) {
-        const contractFile = path.join(env.CDN_CONTRACTS, contract.file)
-        if (await helper.pathExists(contractFile)) {
-          await asyncFs.unlink(contractFile)
-        }
+        await deleteFile(contract.file)
         contract.file = null
       }
 
@@ -909,10 +898,7 @@ export const deleteTempContract = async (req: Request, res: Response) => {
     if (!file.includes('.')) {
       throw new Error('Filename not valid')
     }
-    const contractFile = path.join(env.CDN_TEMP_CONTRACTS, file)
-    if (await helper.pathExists(contractFile)) {
-      await asyncFs.unlink(contractFile)
-    }
+      await deleteFile(file)
 
     res.sendStatus(200)
   } catch (err) {

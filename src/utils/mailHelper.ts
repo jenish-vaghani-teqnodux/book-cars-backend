@@ -1,10 +1,10 @@
-import * as nodemailer from "nodemailer";
-import SMTPTransport from "nodemailer/lib/smtp-transport";
-import * as env from "../config/env.config";
+import * as nodemailer from 'nodemailer'
+import SMTPTransport from 'nodemailer/lib/smtp-transport'
+import * as env from '../config/env.config'
 
 const createTransporter = async (): Promise<nodemailer.Transporter> => {
   if (env.CI) {
-    const testAccount = await nodemailer.createTestAccount();
+    const testAccount = await nodemailer.createTestAccount()
     return nodemailer.createTransport({
       host: 'smtp.ethereal.email',
       port: 587,
@@ -12,7 +12,7 @@ const createTransporter = async (): Promise<nodemailer.Transporter> => {
         user: testAccount.user,
         pass: testAccount.pass,
       },
-    });
+    })
   }
 
   const transporterOptions: SMTPTransport.Options = {
@@ -22,10 +22,10 @@ const createTransporter = async (): Promise<nodemailer.Transporter> => {
       user: env.SMTP_USER,
       pass: env.SMTP_PASS,
     },
-  };
+  }
 
-  return nodemailer.createTransport(transporterOptions);
-};
+  return nodemailer.createTransport(transporterOptions)
+}
 
 /**
  * Sends an email using either real SMTP credentials or a test account.
@@ -36,6 +36,6 @@ const createTransporter = async (): Promise<nodemailer.Transporter> => {
 export const sendMail = async (
   mailOptions: nodemailer.SendMailOptions
 ): Promise<nodemailer.SentMessageInfo> => {
-  const transporter = await createTransporter();
-  return transporter.sendMail(mailOptions);
-};
+  const transporter = await createTransporter()
+  return transporter.sendMail(mailOptions)
+}

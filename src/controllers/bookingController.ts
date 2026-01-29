@@ -4,7 +4,6 @@ import { Expo, ExpoPushMessage, ExpoPushTicket } from 'expo-server-sdk'
 import { Request, Response } from 'express'
 import nodemailer from 'nodemailer'
 import path from 'node:path'
-import asyncFs from 'node:fs/promises'
 import * as bookcarsTypes from ':bookcars-types'
 import i18n from '../lang/i18n'
 import Booking from '../models/Booking'
@@ -21,6 +20,7 @@ import * as mailHelper from '../utils/mailHelper'
 import * as env from '../config/env.config'
 import * as logger from '../utils/logger'
 import stripeAPI from '../payment/stripe'
+import { uploadFile } from 'src/utils/s3Helper'
 
 /**
  * Create a Booking.
@@ -170,10 +170,9 @@ export const confirm = async (user: env.User, supplier: env.User, booking: env.B
   }
 
   if (contractFile) {
-    const file = path.join(env.CDN_CONTRACTS, contractFile)
-    if (await helper.pathExists(file)) {
-      mailOptions.attachments = [{ path: file }]
-    }
+    const url = `${env.CDN_CONTRACTS}/${contractFile}`
+
+    mailOptions.text += `\n\nDownload contract here: ${url}`
   }
 
   await mailHelper.sendMail(mailOptions)
@@ -210,9 +209,6 @@ export const checkout = async (req: Request, res: Response) => {
       if (supplier.licenseRequired && !license) {
         throw new Error("Driver's license required")
       }
-      if (supplier.licenseRequired && !(await helper.pathExists(path.join(env.CDN_TEMP_LICENSES, license!)))) {
-        throw new Error("Driver's license file not found")
-      }
       driver.verified = false
       driver.blacklisted = false
       driver.type = bookcarsTypes.UserType.User
@@ -222,11 +218,13 @@ export const checkout = async (req: Request, res: Response) => {
       await user.save()
 
       // create license
-      if (license) {
-        const tempLicense = path.join(env.CDN_TEMP_LICENSES, license)
-        const filename = `${user._id.toString()}${path.extname(tempLicense)}`
-        const filepath = path.join(env.CDN_LICENSES, filename)
-        await asyncFs.rename(tempLicense, filepath)
+      if (license && req.file) {
+        const filename = `licenses/${user._id}_${Date.now()}${path.extname(req.file.originalname)}`
+        await uploadFile(
+          filename,
+          req.file.buffer,
+          req.file.mimetype
+        )
         user.license = filename
         await user.save()
       }
@@ -260,7 +258,7 @@ export const checkout = async (req: Request, res: Response) => {
     if (supplier.licenseRequired && !user!.license) {
       throw new Error("Driver's license required")
     }
-    if (supplier.licenseRequired && !(await helper.pathExists(path.join(env.CDN_LICENSES, user!.license!)))) {
+    if (supplier.licenseRequired && user!.license!) {
       throw new Error("Driver's license file not found")
     }
 

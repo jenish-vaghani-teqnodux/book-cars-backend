@@ -236,6 +236,35 @@ export const SMTP_PASS = __env__('BC_SMTP_PASS', true)
 export const SMTP_FROM = __env__('BC_SMTP_FROM', true)
 
 /**
+ * AWS_ACCESS_KEY from aws.
+ *
+ * @type {string}
+ */
+export const AWS_ACCESS_KEY = __env__('BC_AWS_ACCESS_KEY')
+
+/**
+ * AWS_SECRET_KEY from aws.
+ *
+ * @type {string}
+ */
+export const AWS_SECRET_KEY = __env__('BC_AWS_SECRET_KEY')
+
+/**
+ * AWS_REGION from aws.
+ *
+ * @type {string}
+ */
+export const AWS_REGION = __env__('BC_AWS_REGION')
+
+/**
+ * AWS_BUCKET_NAME from aws.
+ *
+ * @type {string}
+ */
+export const AWS_BUCKET_NAME = __env__('BC_AWS_BUCKET_NAME')
+
+
+/**
  * CDN root folder path.
  *
  * @type {string}

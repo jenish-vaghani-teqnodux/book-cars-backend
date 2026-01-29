@@ -1,5 +1,3 @@
-import { constants } from 'node:fs'
-import asyncFs from 'node:fs/promises'
 import path from 'node:path'
 import mongoose from 'mongoose'
 import validator from 'validator'
@@ -19,36 +17,6 @@ export const StringToBoolean = (input: string): boolean => {
   } catch {
     return false
   }
-}
-
-/**
- * Check if a file or a folder exists.
- *
- * @export
- * @async
- * @param {string} filePath
- * @returns {Promise<boolean>}
- */
-export const pathExists = async (filePath: string): Promise<boolean> => {
-  try {
-    await asyncFs.access(filePath, constants.F_OK)
-    return true
-  } catch {
-    return false
-  }
-}
-
-/**
- * Create a folder recursively.
- *
- * @export
- * @async
- * @param {string} folder
- * @param {boolean} recursive
- * @returns {Promise<void>}
- */
-export const mkdir = async (folder: string) => {
-  await asyncFs.mkdir(folder, { recursive: true })
 }
 
 /**

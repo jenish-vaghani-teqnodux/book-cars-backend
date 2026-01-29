@@ -1,5 +1,4 @@
 import path from 'node:path'
-import asyncFs from 'node:fs/promises'
 import bcrypt from 'bcrypt'
 import { nanoid } from 'nanoid'
 import escapeStringRegexp from 'escape-string-regexp'
@@ -22,6 +21,7 @@ import NotificationCounter from '../models/NotificationCounter'
 import Car from '../models/Car'
 import AdditionalDriver from '../models/AdditionalDriver'
 import * as logger from '../utils/logger'
+import { deleteFile, uploadFile } from 'src/utils/s3Helper'
 
 /**
  * Get status message as HTML.
@@ -64,16 +64,19 @@ const _signup = async (req: Request, res: Response, userType: bookcarsTypes.User
     user = new User(body)
     await user.save()
 
-    if (body.avatar) {
-      const avatar = path.join(env.CDN_TEMP_USERS, body.avatar)
-      if (await helper.pathExists(avatar)) {
-        const filename = `${user._id}_${Date.now()}${path.extname(body.avatar)}`
-        const newPath = path.join(env.CDN_USERS, filename)
+    if (body.avatar && req.file) {
+      const filename = `users/${user._id}_${Date.now()}${path.extname(req.file.originalname)}`
 
-        await asyncFs.rename(avatar, newPath)
-        user.avatar = filename
-        await user.save()
-      }
+      await uploadFile(
+        filename,
+        req.file.buffer,
+        req.file.mimetype
+      )
+
+      // save only full url if you prefer)
+      user.avatar = filename
+
+     await user.save()
     }
   } catch (err) {
     logger.error(`[user.signup] ${i18n.t('DB_ERROR')} ${JSON.stringify(body)}`, err)
@@ -160,7 +163,7 @@ export const adminSignup = async (req: Request, res: Response) => {
  * @returns {unknown}
  */
 export const create = async (req: Request, res: Response) => {
-  const { body }: { body: bookcarsTypes.CreateUserPayload } = req
+  const { body, files }: any = req
 
   try {
     body.verified = false
@@ -179,48 +182,61 @@ export const create = async (req: Request, res: Response) => {
     await user.save()
 
     const finalContracts: bookcarsTypes.Contract[] = []
-    if (contracts) {
-      for (const contract of contracts) {
-        if (contract.language && contract.file) {
-          const tempFile = path.join(env.CDN_TEMP_CONTRACTS, contract.file)
+    if (contracts && files?.contracts) {
+      for (let i = 0; i < contracts.length; i++) {
+        const contract = contracts[i]
+        const file = files.contracts[i]
 
-          if (await helper.pathExists(tempFile)) {
-            const filename = `${user._id.toString()}_${contract.language}${path.extname(tempFile)}`
-            const newPath = path.join(env.CDN_CONTRACTS, filename)
+        if (contract.language && file) {
+          const filename = `contracts/${user._id}_${contract.language}${path.extname(file.originalname)}`
 
-            await asyncFs.rename(tempFile, newPath)
-            finalContracts.push({ language: contract.language, file: filename })
-          }
+          await uploadFile(
+            filename,
+            file.buffer,
+            file.mimetype
+          )
+
+          finalContracts.push({
+            language: contract.language,
+            file: filename,
+          })
         }
       }
+
       user.contracts = finalContracts
       await user.save()
     }
 
     // avatar
-    if (body.avatar) {
-      const avatar = path.join(env.CDN_TEMP_USERS, body.avatar)
-      if (await helper.pathExists(avatar)) {
-        const filename = `${user._id}_${Date.now()}${path.extname(body.avatar)}`
-        const newPath = path.join(env.CDN_USERS, filename)
+    if (files?.avatar) {
+      const avatarFile = files.avatar[0]
 
-        await asyncFs.rename(avatar, newPath)
-        user.avatar = filename
-        await user.save()
-      }
+      const filename = `users/${user._id}_${Date.now()}${path.extname(avatarFile.originalname)}`
+
+      await uploadFile(
+        filename,
+        avatarFile.buffer,
+        avatarFile.mimetype
+      )
+
+      user.avatar = filename
+      await user.save()
     }
 
     // license
-    if (body.license && user.type === bookcarsTypes.UserType.User) {
-      const license = path.join(env.CDN_TEMP_LICENSES, body.license)
-      if (await helper.pathExists(license)) {
-        const filename = `${user._id}${path.extname(body.license)}`
-        const newPath = path.join(env.CDN_LICENSES, filename)
+    if (files?.license && user.type === bookcarsTypes.UserType.User) {
+      const licenseFile = files.license[0]
 
-        await asyncFs.rename(license, newPath)
-        user.license = filename
-        await user.save()
-      }
+      const filename = `licenses/${user._id}${path.extname(licenseFile.originalname)}`
+
+      await uploadFile(
+        filename,
+        licenseFile.buffer,
+        licenseFile.mimetype
+      )
+
+      user.license = filename
+      await user.save()
     }
 
     if (body.password) {
@@ -1177,22 +1193,29 @@ export const getUser = async (req: Request, res: Response) => {
  * @param {Response} res
  * @returns {unknown}
  */
-export const createAvatar = async (req: Request, res: Response) => {
+export const createAvatar = async (req: Request, res: Response) => {  
   try {
     if (!req.file) {
       throw new Error('[user.createAvatar] req.file not found')
     }
 
-    const filename = `${helper.getFilenameWithoutExtension(req.file.originalname)}_${nanoid()}_${Date.now()}${path.extname(req.file.originalname)}`
-    const filepath = path.join(env.CDN_TEMP_USERS, filename)
+    const filename = `users/${helper.getFilenameWithoutExtension(req.file.originalname)}_${nanoid()}_${Date.now()}${path.extname(req.file.originalname)}`
 
-    await asyncFs.writeFile(filepath, req.file.buffer)
+    // 👉 direct AWS upload (no temp folder)
+    await uploadFile(
+      filename,
+      req.file.buffer,
+      req.file.mimetype
+    )
+
+    // 👉 frontend ne only filename (or full CDN url if you want)
     res.json(filename)
   } catch (err) {
     logger.error(`[user.createAvatar] ${i18n.t('DB_ERROR')}`, err)
     res.status(400).send(i18n.t('ERROR') + err)
   }
 }
+
 
 /**
  * Update avatar.
@@ -1217,21 +1240,17 @@ export const updateAvatar = async (req: Request, res: Response) => {
     const user = await User.findById(userId)
 
     if (user) {
-      if (user.avatar && !user.avatar.startsWith('http')) {
-        const avatar = path.join(env.CDN_USERS, user.avatar)
-
-        if (await helper.pathExists(avatar)) {
-          await asyncFs.unlink(avatar)
-        }
+      if (user.avatar) {
+        const oldKey = user.avatar.replace(`${env.CDN_ROOT}/`, '')
+        await deleteFile(oldKey)
       }
 
       const filename = `${user._id}_${Date.now()}${path.extname(req.file.originalname)}`
-      const filepath = path.join(env.CDN_USERS, filename)
-
-      await asyncFs.writeFile(filepath, req.file.buffer)
-      user.avatar = filename
+      const key = `users/${filename}`
+      await uploadFile(key, req.file.buffer, req.file.mimetype)
+       user.avatar = `${env.CDN_ROOT}/${key}`
       await user.save()
-      res.json(filename)
+      res.json(user.avatar)
       return
     }
 
@@ -1259,12 +1278,12 @@ export const deleteAvatar = async (req: Request, res: Response) => {
     const user = await User.findById(userId)
 
     if (user) {
-      if (user.avatar && !user.avatar.startsWith('http')) {
-        const avatar = path.join(env.CDN_USERS, user.avatar)
-        if (await helper.pathExists(avatar)) {
-          await asyncFs.unlink(avatar)
-        }
-      }
+       if (user.avatar) {
+      // avatar already contains: users/filename.png
+      
+      const avatarKey = user.avatar.replace(env.CDN_ROOT,'')
+      await deleteFile(avatarKey)
+    }
       user.avatar = undefined
 
       await user.save()
@@ -1293,12 +1312,12 @@ export const deleteTempAvatar = async (req: Request, res: Response) => {
   const { avatar } = req.params
 
   try {
-    const avatarFile = path.join(env.CDN_TEMP_USERS, avatar)
-    if (!(await helper.pathExists(avatarFile))) {
-      throw new Error(`[user.deleteTempAvatar] temp avatar ${avatarFile} not found`)
+    if (!avatar) {
+      return res.sendStatus(400)
     }
 
-    await asyncFs.unlink(avatarFile)
+    // 👉 avatar already contains key like: temp_users/abc.png OR users/abc.png
+    await deleteFile(avatar)
 
     res.sendStatus(200)
   } catch (err) {
@@ -1506,68 +1525,66 @@ export const getUsers = async (req: Request, res: Response) => {
 export const deleteUsers = async (req: Request, res: Response) => {
   try {
     const { body }: { body: string[] } = req
-    const ids: mongoose.Types.ObjectId[] = body.map((id: string) => new mongoose.Types.ObjectId(id))
+    const ids = body.map(id => new mongoose.Types.ObjectId(id))
 
     for (const id of ids) {
       const user = await User.findById(id)
 
-      if (user) {
-        await User.deleteOne({ _id: id })
-
-        if (user.avatar) {
-          const avatar = path.join(env.CDN_USERS, user.avatar)
-          if (await helper.pathExists(avatar)) {
-            await asyncFs.unlink(avatar)
-          }
-        }
-
-        if (user.contracts && user.contracts.length > 0) {
-          for (const contract of user.contracts) {
-            if (contract.file) {
-              const file = path.join(env.CDN_CONTRACTS, contract.file)
-              if (await helper.pathExists(file)) {
-                await asyncFs.unlink(file)
-              }
-            }
-          }
-        }
-
-        if (user.license) {
-          const file = path.join(env.CDN_LICENSES, user.license)
-          if (await helper.pathExists(file)) {
-            await asyncFs.unlink(file)
-          }
-        }
-
-        if (user.type === bookcarsTypes.UserType.Supplier) {
-          const additionalDrivers = (
-            await Booking
-              .find(
-                { supplier: id, _additionalDriver: { $ne: null } },
-              )
-              .select('_additionalDriver -_id')
-              .lean()
-          ).map((b) => b._additionalDriver)
-          await AdditionalDriver.deleteMany({ _id: { $in: additionalDrivers } })
-          await Booking.deleteMany({ supplier: id })
-          const cars = await Car.find({ supplier: id })
-          await Car.deleteMany({ supplier: id })
-          for (const car of cars) {
-            if (car.image) {
-              const image = path.join(env.CDN_CARS, car.image)
-              if (await helper.pathExists(image)) {
-                await asyncFs.unlink(image)
-              }
-            }
-          }
-        } else if (user.type === bookcarsTypes.UserType.User) {
-          await Booking.deleteMany({ driver: id })
-        }
-        await NotificationCounter.deleteMany({ user: id })
-        await Notification.deleteMany({ user: id })
-      } else {
+      if (!user) {
         logger.error('User not found:', id)
+        continue
       }
+
+      // 👉 Delete avatar from AWS
+      if (user.avatar) {
+        await deleteFile(user.avatar)
+      }
+
+      // 👉 Delete contracts from AWS
+      if (user.contracts?.length) {
+        for (const contract of user.contracts) {
+          if (contract.file) {
+            await deleteFile(contract.file)
+          }
+        }
+      }
+
+      // 👉 Delete license from AWS
+      if (user.license) {
+        await deleteFile(user.license)
+      }
+
+      // 👉 Supplier related cleanup
+      if (user.type === bookcarsTypes.UserType.Supplier) {
+        const additionalDrivers = (
+          await Booking.find(
+            { supplier: id, _additionalDriver: { $ne: null } }
+          )
+            .select('_additionalDriver -_id')
+            .lean()
+        ).map(b => b._additionalDriver)
+
+        await AdditionalDriver.deleteMany({ _id: { $in: additionalDrivers } })
+        await Booking.deleteMany({ supplier: id })
+
+        const cars = await Car.find({ supplier: id })
+        await Car.deleteMany({ supplier: id })
+
+        // 👉 Delete car images from AWS
+        for (const car of cars) {
+          if (car.image) {
+            await deleteFile(car.image)
+          }
+        }
+      } else if (user.type === bookcarsTypes.UserType.User) {
+        await Booking.deleteMany({ driver: id })
+      }
+
+      await NotificationCounter.deleteMany({ user: id })
+      await Notification.deleteMany({ user: id })
+
+      // 👉 Finally delete user DB record
+      await User.deleteOne({ _id: id })
     }
 
     res.sendStatus(200)
@@ -1576,6 +1593,7 @@ export const deleteUsers = async (req: Request, res: Response) => {
     res.status(400).send(i18n.t('DB_ERROR') + err)
   }
 }
+
 
 /**
  * Validate Google reCAPTCHA v3 token.
@@ -1681,19 +1699,22 @@ export const hasPassword = async (req: Request, res: Response) => {
  * @param {Response} res
  * @returns {unknown}
  */
+
 export const createLicense = async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       throw new Error('req.file not found')
     }
+
     if (!req.file.originalname.includes('.')) {
       throw new Error('File extension not found')
     }
-
-    const filename = `${nanoid()}${path.extname(req.file.originalname)}`
-    const filepath = path.join(env.CDN_TEMP_LICENSES, filename)
-
-    await asyncFs.writeFile(filepath, req.file.buffer)
+    const filename = `licenses/${nanoid()}${path.extname(req.file.originalname)}`
+    await uploadFile(
+      filename,
+      req.file.buffer,
+      req.file.mimetype
+    )
     res.json(filename)
   } catch (err) {
     logger.error(`[user.createLicense] ${i18n.t('DB_ERROR')}`, err)
@@ -1718,40 +1739,46 @@ export const updateLicense = async (req: Request, res: Response) => {
     if (!file) {
       throw new Error('req.file not found')
     }
+
     if (!file.originalname.includes('.')) {
       throw new Error('File extension not found')
     }
+
     if (!helper.isValidObjectId(id)) {
       throw new Error('User Id not valid')
     }
 
-    const user = await User.findOne({ _id: id, type: bookcarsTypes.UserType.User })
+    const user = await User.findOne({
+      _id: id,
+      type: bookcarsTypes.UserType.User,
+    })
 
-    if (user) {
-      if (user.license) {
-        const licenseFile = path.join(env.CDN_LICENSES, user.license)
-        if (await helper.pathExists(licenseFile)) {
-          await asyncFs.unlink(licenseFile)
-        }
-      }
-
-      const filename = `${user._id.toString()}${path.extname(file.originalname)}`
-      const filepath = path.join(env.CDN_LICENSES, filename)
-
-      await asyncFs.writeFile(filepath, file.buffer)
-
-      user.license = filename
-      await user.save()
-      res.json(filename)
-      return
+    if (!user) {
+      return res.sendStatus(204)
     }
 
-    res.sendStatus(204)
+    if (user.license) {
+      await deleteFile(user.license)
+    }
+
+    const filename = `licenses/${user._id}${path.extname(file.originalname)}`
+
+    await uploadFile(
+      filename,
+      file.buffer,
+      file.mimetype
+    )
+
+    user.license = filename
+    await user.save()
+
+    res.json(filename)
   } catch (err) {
     logger.error(`[user.updateLicense] ${i18n.t('DB_ERROR')} ${id}`, err)
     res.status(400).send(i18n.t('DB_ERROR') + err)
   }
 }
+
 
 /**
 * Delete a license.
@@ -1770,14 +1797,11 @@ export const deleteLicense = async (req: Request, res: Response) => {
       throw new Error('User Id not valid')
     }
 
-    const user = await User.findOne({ _id: id, type: bookcarsTypes.UserType.User })
-
+    const user = await User.findOne({ _id: id, type: bookcarsTypes.UserType.User })    
+    
     if (user) {
       if (user.license) {
-        const licenseFile = path.join(env.CDN_LICENSES, user.license)
-        if (await helper.pathExists(licenseFile)) {
-          await asyncFs.unlink(licenseFile)
-        }
+        await deleteFile(user.license)
         user.license = null
       }
 
@@ -1808,10 +1832,7 @@ export const deleteTempLicense = async (req: Request, res: Response) => {
     if (!file.includes('.')) {
       throw new Error('Filename not valid')
     }
-    const licenseFile = path.join(env.CDN_TEMP_LICENSES, file)
-    if (await helper.pathExists(licenseFile)) {
-      await asyncFs.unlink(licenseFile)
-    }
+   await deleteFile(file)
 
     res.sendStatus(200)
   } catch (err) {

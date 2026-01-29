@@ -1,4 +1,3 @@
-import asyncFs from 'node:fs/promises'
 import path from 'node:path'
 import { nanoid } from 'nanoid'
 import escapeStringRegexp from 'escape-string-regexp'
@@ -18,6 +17,7 @@ import Notification from '../models/Notification'
 import NotificationCounter from '../models/NotificationCounter'
 import * as mailHelper from '../utils/mailHelper'
 import Location from '../models/Location'
+import { deleteFile, uploadFile } from 'src/utils/s3Helper'
 
 /**
  * Create a Car.
@@ -49,20 +49,6 @@ export const create = async (req: Request, res: Response) => {
 
     const car = new Car({ ...carFields, dateBasedPrices: dateBasedPriceIds })
     await car.save()
-
-    const image = path.join(env.CDN_TEMP_CARS, body.image)
-
-    if (await helper.pathExists(image)) {
-      const filename = `${car._id}_${Date.now()}${path.extname(body.image)}`
-      const newPath = path.join(env.CDN_CARS, filename)
-
-      await asyncFs.rename(image, newPath)
-      car.image = filename
-      await car.save()
-    } else {
-      await Car.deleteOne({ _id: car._id })
-      throw new Error(`Image ${body.image} not found`)
-    }
 
     // notify admin if the car was created by a supplier
     if (body.loggedUser) {
@@ -383,10 +369,7 @@ export const deleteCar = async (req: Request, res: Response) => {
       }
 
       if (car.image) {
-        const image = path.join(env.CDN_CARS, car.image)
-        if (await helper.pathExists(image)) {
-          await asyncFs.unlink(image)
-        }
+        await deleteFile(car.image)
       }
       await Booking.deleteMany({ car: car._id })
     } else {
@@ -415,10 +398,13 @@ export const createImage = async (req: Request, res: Response) => {
       throw new Error('[car.createImage] req.file not found')
     }
 
-    const filename = `${helper.getFilenameWithoutExtension(req.file.originalname)}_${nanoid()}_${Date.now()}${path.extname(req.file.originalname)}`
-    const filepath = path.join(env.CDN_TEMP_CARS, filename)
+    const filename = `cars/${helper.getFilenameWithoutExtension(req.file.originalname)}_${nanoid()}_${Date.now()}${path.extname(req.file.originalname)}`
+    await uploadFile(
+      filename,
+      req.file.buffer,
+      req.file.mimetype
+    )
 
-    await asyncFs.writeFile(filepath, req.file.buffer)
     res.json(filename)
   } catch (err) {
     logger.error(`[car.createImage] ${i18n.t('DB_ERROR')}`, err)
@@ -452,16 +438,15 @@ export const updateImage = async (req: Request, res: Response) => {
 
     if (car) {
       if (car.image) {
-        const image = path.join(env.CDN_CARS, car.image)
-        if (await helper.pathExists(image)) {
-          await asyncFs.unlink(image)
-        }
+        await deleteFile(car.image)
       }
 
-      const filename = `${car._id}_${Date.now()}${path.extname(file.originalname)}`
-      const filepath = path.join(env.CDN_CARS, filename)
-
-      await asyncFs.writeFile(filepath, file.buffer)
+      const filename = `cars/${car._id}_${Date.now()}${path.extname(file.originalname)}`
+      await uploadFile(
+      filename,
+      req.file.buffer,
+      req.file.mimetype
+    )
       car.image = filename
       await car.save()
       res.json(filename)
@@ -493,10 +478,7 @@ export const deleteImage = async (req: Request, res: Response) => {
 
     if (car) {
       if (car.image) {
-        const image = path.join(env.CDN_CARS, car.image)
-        if (await helper.pathExists(image)) {
-          await asyncFs.unlink(image)
-        }
+        await deleteFile(car.image)
       }
       car.image = null
 
@@ -525,12 +507,11 @@ export const deleteTempImage = async (req: Request, res: Response) => {
   const { image } = req.params
 
   try {
-    const imageFile = path.join(env.CDN_TEMP_CARS, image)
-    if (!(await helper.pathExists(imageFile))) {
-      throw new Error(`[car.deleteTempImage] temp image ${imageFile} not found`)
+    if (!image) {
+      throw new Error('[car.deleteTempImage] image param not found')
     }
 
-    await asyncFs.unlink(imageFile)
+    await deleteFile(image)
 
     res.sendStatus(200)
   } catch (err) {
@@ -867,6 +848,7 @@ export const getBookingCars = async (req: Request, res: Response) => {
       ],
       { collation: { locale: env.DEFAULT_LANGUAGE, strength: 2 } },
     )
+    
 
     for (const car of cars) {
       const { _id, fullName, avatar, priceChangeRate } = car.supplier

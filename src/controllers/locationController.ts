@@ -1,4 +1,3 @@
-import asyncFs from 'node:fs/promises'
 import path from 'node:path'
 import { nanoid } from 'nanoid'
 import escapeStringRegexp from 'escape-string-regexp'
@@ -13,6 +12,7 @@ import LocationValue from '../models/LocationValue'
 import Car from '../models/Car'
 import ParkingSpot from '../models/ParkingSpot'
 import * as logger from '../utils/logger'
+import { deleteFile, uploadFile } from 'src/utils/s3Helper'
 
 /**
  * Validate a Location name with language code.
@@ -108,21 +108,13 @@ export const create = async (req: Request, res: Response) => {
     longitude,
     latitude,
     names,
-    image,
     parkingSpots: _parkingSpots,
     supplier,
     parentLocation,
-  } = body
+    image
+  } = body  
 
   try {
-    if (image) {
-      const _image = path.join(env.CDN_TEMP_LOCATIONS, image)
-
-      if (!(await helper.pathExists(_image))) {
-        throw new Error(`Location image not found: ${_image}`)
-      }
-    }
-
     const parkingSpots: string[] = []
     if (_parkingSpots) {
       for (const parkingSpot of _parkingSpots) {
@@ -149,21 +141,12 @@ export const create = async (req: Request, res: Response) => {
       parkingSpots,
       supplier,
       parentLocation,
+      image
     })
     await location.save()
 
-    if (image) {
-      const _image = path.join(env.CDN_TEMP_LOCATIONS, image)
-
-      const filename = `${location._id}_${Date.now()}${path.extname(image)}`
-      const newPath = path.join(env.CDN_LOCATIONS, filename)
-
-      await asyncFs.rename(_image, newPath)
-      location.image = filename
-      await location.save()
-    }
-
-    res.send(location)
+    const updatedLocation = await Location.findById(location._id)    
+    res.send(updatedLocation)
   } catch (err) {
     logger.error(`[location.create] ${i18n.t('DB_ERROR')} ${JSON.stringify(req.body)}`, err)
     res.status(400).send(i18n.t('DB_ERROR') + err)
@@ -313,7 +296,7 @@ export const deleteLocation = async (req: Request, res: Response) => {
   const { id } = req.params
 
   try {
-    const location = await Location.findById(id).populate<{ parkingSpots: env.ParkingSpot[] }>('parkingSpots')
+    const location = await Location.findById(id).populate<{ parkingSpots: env.ParkingSpot[] }>('parkingSpots')    
     if (!location) {
       const msg = `[location.delete] Location ${id} not found`
       logger.info(msg)
@@ -330,11 +313,8 @@ export const deleteLocation = async (req: Request, res: Response) => {
       await ParkingSpot.deleteMany({ _id: { $in: parkingSpots } })
     }
 
-    if (location.image) {
-      const image = path.join(env.CDN_LOCATIONS, location.image)
-      if (await helper.pathExists(image)) {
-        await asyncFs.unlink(image)
-      }
+     if (location.image) {
+      await deleteFile(location.image)
     }
 
     res.sendStatus(200)
@@ -689,10 +669,14 @@ export const createImage = async (req: Request, res: Response) => {
       throw new Error('[location.createImage] req.file not found')
     }
 
-    const filename = `${helper.getFilenameWithoutExtension(req.file.originalname)}_${nanoid()}_${Date.now()}${path.extname(req.file.originalname)}`
-    const filepath = path.join(env.CDN_TEMP_LOCATIONS, filename)
+    const filename = `locations/${helper.getFilenameWithoutExtension(req.file.originalname)}_${nanoid()}_${Date.now()}${path.extname(req.file.originalname)}`
 
-    await asyncFs.writeFile(filepath, req.file.buffer)
+    await uploadFile(
+      filename,
+      req.file.buffer,
+      req.file.mimetype
+    )
+
     res.json(filename)
   } catch (err) {
     logger.error(`[location.createImage] ${i18n.t('DB_ERROR')}`, err)
@@ -720,35 +704,36 @@ export const updateImage = async (req: Request, res: Response) => {
       return
     }
 
-    const { file } = req
-
     const location = await Location.findById(id)
 
-    if (location) {
-      if (location.image) {
-        const image = path.join(env.CDN_LOCATIONS, location.image)
-        if (await helper.pathExists(image)) {
-          await asyncFs.unlink(image)
-        }
-      }
-
-      const filename = `${location._id}_${Date.now()}${path.extname(file.originalname)}`
-      const filepath = path.join(env.CDN_LOCATIONS, filename)
-
-      await asyncFs.writeFile(filepath, file.buffer)
-      location.image = filename
-      await location.save()
-      res.json(filename)
+    if (!location) {
+      logger.error('[location.updateImage] Location not found:', id)
+      res.sendStatus(204)
       return
     }
 
-    logger.error('[location.updateImage] Location not found:', id)
-    res.sendStatus(204)
+    if (location.image) {
+      await deleteFile(location.image)
+    }
+
+    const filename = `locations/${location._id}_${Date.now()}${path.extname(req.file.originalname)}`
+
+    await uploadFile(
+      filename,
+      req.file.buffer,
+      req.file.mimetype
+    )
+
+    location.image = filename
+    await location.save()
+
+    res.json(filename)
   } catch (err) {
     logger.error(`[location.updateImage] ${i18n.t('DB_ERROR')} ${id}`, err)
     res.status(400).send(i18n.t('DB_ERROR') + err)
   }
 }
+
 
 /**
  * Delete a Location image.
@@ -770,10 +755,7 @@ export const deleteImage = async (req: Request, res: Response) => {
 
     if (location) {
       if (location.image) {
-        const image = path.join(env.CDN_LOCATIONS, location.image)
-        if (await helper.pathExists(image)) {
-          await asyncFs.unlink(image)
-        }
+        await deleteFile(location.image)
       }
       location.image = null
 
@@ -805,10 +787,7 @@ export const deleteTempImage = async (req: Request, res: Response) => {
     if (!image.includes('.')) {
       throw new Error('Filename not valid')
     }
-    const imageFile = path.join(env.CDN_TEMP_LOCATIONS, image)
-    if (await helper.pathExists(imageFile)) {
-      await asyncFs.unlink(imageFile)
-    }
+   await deleteFile(image)
 
     res.sendStatus(200)
   } catch (err) {
