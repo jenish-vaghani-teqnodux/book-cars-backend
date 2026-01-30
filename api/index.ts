@@ -1,11 +1,7 @@
-import express from 'express'
+// index.ts (root)
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { start } from "src";
 
-const app = express()
-
-app.use(express.json())
-
-app.get('/health', (req, res) => {
-    res.json({status: 'OK'})
-})
-
-export default app
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  return start()
+}

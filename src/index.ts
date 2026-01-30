@@ -41,7 +41,7 @@ const shutdownTimeoutMs = 10_000
 /**
  * Starts the server and sets up graceful shutdown handlers.
  */
-const start = async (): Promise<void> => {
+export const start = async (): Promise<void> => {
   if(process.env.NODE_ENV !== 'production'){
     dns.setServers(['1.1.1.1'])
   }
@@ -85,5 +85,3 @@ const start = async (): Promise<void> => {
     process.exit(1)
   }
 }
-
-start() // Start server
