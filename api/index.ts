@@ -1,7 +1,6 @@
 // index.ts (root)
-
-import { start } from 'src'
+import app from 'src/app'
 
 export default function handler(req: any, res: any) {
-  return start()
+  return app(req as any, res as any)
 }
