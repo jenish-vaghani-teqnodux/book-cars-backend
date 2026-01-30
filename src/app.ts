@@ -4,7 +4,7 @@ import compression from 'compression'
 import helmet from 'helmet'
 import nocache from 'nocache'
 import cookieParser from 'cookie-parser'
-import i18n, { setLanguage } from './lang/i18n'
+import { setLanguage } from './lang/i18n'
 import * as env from './config/env.config'
 import cors from './middlewares/cors'
 import allowedMethods from './middlewares/allowedMethods'
@@ -20,7 +20,6 @@ import paypalRoutes from './routes/paypalRoutes'
 import ipinfoRoutes from './routes/ipinfoRoutes'
 import bankDetailsRoutes from './routes/bankDetailsRoutes'
 import settingRoutes from './routes/settingRoutes'
-import * as helper from './utils/helper'
 
 const app = express()
 
