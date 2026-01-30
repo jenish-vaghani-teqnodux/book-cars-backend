@@ -1,7 +1,7 @@
 // index.ts (root)
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { start } from "src";
 
-export default function handler(req: VercelRequest, res: VercelResponse) {
+import { start } from 'src'
+
+export default function handler(req: any, res: any) {
   return start()
 }
