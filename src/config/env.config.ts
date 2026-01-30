@@ -74,8 +74,6 @@ export const BATCH_SIZE = Number.parseInt(__env__('BC_BATCH_SIZE', false, '1000'
  */
 export const PORT = Number.parseInt(__env__('BC_PORT', false, '4002'), 10)
 
-export const VERCEL = __env__('BC_VERCEL')
-
 /**
  * Indicate whether HTTPS is enabled or not.
  *

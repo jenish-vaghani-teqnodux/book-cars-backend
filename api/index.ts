@@ -1,34 +1,11 @@
-import app from '../src/app'
-import * as databaseHelper from '../src/utils/databaseHelper'
-import * as env from '../src/config/env.config'
+import express from 'express'
 
-let dbReady = false
+const app = express()
 
-async function ensureDb() {
-  if (!dbReady) {
-    const connected = await databaseHelper.connect(
-      env.DB_URI,
-      env.DB_SSL,
-      env.DB_DEBUG
-    )
-    const initialized = await databaseHelper.initialize()
+app.use(express.json())
 
-    if (!connected || !initialized) {
-      throw new Error('DB init failed')
-    }
+app.get('/health', (req, res) => {
+    res.json({status: 'OK'})
+})
 
-    dbReady = true
-  }
-}
-
-export default async function handler(req: any, res: any) {
-  try {
-    await ensureDb()
-    return app(req, res)
-  } catch (e) {
-    return res.status(500).json({
-      ok: false,
-      error: 'Init failed'
-    })
-  }
-}
+export default app

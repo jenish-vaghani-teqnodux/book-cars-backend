@@ -64,7 +64,10 @@ app.use('/', ipinfoRoutes)
 app.use('/', bankDetailsRoutes)
 app.use('/', settingRoutes)
 
-app.get('/health', (req, res) => res.json({ status: 'OK' }))
+app.get('/', (req, res) => {
+  res.status(200).send('API is running')
+})
+
 
 if (env.ENABLE_SENTRY) {
   Sentry.setupExpressErrorHandler(app)
