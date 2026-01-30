@@ -1,11 +1,14 @@
 import express from 'express'
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 const app = express()
-
 app.use(express.json())
 
 app.get('/health', (req, res) => {
-    res.json({status: 'OK'})
+  res.status(200).json({ status: 'OK' })
 })
 
-export default app
+// 🔥 VERY IMPORTANT PART
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  app(req, res)
+}
