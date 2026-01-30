@@ -22,7 +22,7 @@ npm-debug.log*
 .eslintcache
 
 # jest
-_tests_/
+__tests__/
 coverage/
 
 # logs
