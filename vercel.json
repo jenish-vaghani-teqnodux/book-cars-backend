@@ -4,5 +4,6 @@
       "src": "src/app.ts",
       "use": "@vercel/node"
     }
-  ]
+  ],
+  "rewrites": [{ "source": "/(.*)", "destination": "/api/index.ts" }]
 }

@@ -86,4 +86,14 @@ const start = async (): Promise<void> => {
   }
 }
 
-start() // Start server
+if (!process.env.VERCEL) {
+  start()
+}
+
+
+export default function handler(req: any, res: any) {
+  if (req.url === '/health') {
+    return res.status(200).json({ status: 'OK' })
+  }
+  return res.status(404).end()
+}
