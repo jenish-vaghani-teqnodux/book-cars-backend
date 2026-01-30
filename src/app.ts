@@ -4,7 +4,7 @@ import compression from 'compression'
 import helmet from 'helmet'
 import nocache from 'nocache'
 import cookieParser from 'cookie-parser'
-import i18n from './lang/i18n'
+import i18n, { setLanguage } from './lang/i18n'
 import * as env from './config/env.config'
 import cors from './middlewares/cors'
 import allowedMethods from './middlewares/allowedMethods'
@@ -69,6 +69,6 @@ if (env.ENABLE_SENTRY) {
   Sentry.setupExpressErrorHandler(app)
 }
 
-i18n.locale = env.DEFAULT_LANGUAGE
+await setLanguage(env.DEFAULT_LANGUAGE)
 
 export default app
