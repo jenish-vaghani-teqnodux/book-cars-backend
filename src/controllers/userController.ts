@@ -22,6 +22,7 @@ import Car from '../models/Car'
 import AdditionalDriver from '../models/AdditionalDriver'
 import * as logger from '../utils/logger'
 import { deleteFile, uploadFile } from 'src/utils/s3Helper'
+import * as databaseHelper from '../utils/databaseHelper'
 
 /**
  * Get status message as HTML.
@@ -821,6 +822,8 @@ export const validateEmail = async (req: Request, res: Response) => {
   const { email, appType } = body
 
   try {
+    await databaseHelper.connect(env.DB_URI, env.DB_SSL, env.DB_DEBUG)
+
     if (!helper.isValidEmail(email)) {
       throw new Error('body.email is not valid')
     }
@@ -830,25 +833,20 @@ export const validateEmail = async (req: Request, res: Response) => {
       ? [bookcarsTypes.UserType.User, bookcarsTypes.UserType.Admin, bookcarsTypes.UserType.Supplier]
       : [bookcarsTypes.UserType.Admin, bookcarsTypes.UserType.Supplier]
 
-    const exists = await User.exists(
-      {
-        email,
-        type: { $in: types }
-      }
-    )
+    const exists = await User.exists({ email, type: { $in: types } })
 
     if (exists) {
       res.sendStatus(204)
       return
     }
 
-    // email does not exist in db (can be added)
     res.sendStatus(200)
   } catch (err) {
     logger.error(`[user.validateEmail] ${i18n.t('DB_ERROR')} ${email}`, err)
     res.status(400).send(i18n.t('DB_ERROR') + err)
   }
 }
+
 
 /**
  * Validate JWT token.
