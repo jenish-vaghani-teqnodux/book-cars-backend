@@ -11,7 +11,7 @@ if (await databaseHelper.connect(env.DB_URI, env.DB_SSL, env.DB_DEBUG)) {
 
   // await Car.updateMany({}, { isDateBasedPrice: false, dateBasedPrices: [] })
 
-  await databaseHelper.close()
+  // await databaseHelper.close()
   logger.info('Database connection closed')
   process.exit(0)
 }
