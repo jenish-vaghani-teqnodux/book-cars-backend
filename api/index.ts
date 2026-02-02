@@ -2,6 +2,7 @@ let cached: any
 
 export default async function handler(req: any, res: any) {
   if (!cached) {
+    // @ts-ignore
     cached = import('../dist/src/app.js')
   }
 
