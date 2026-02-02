@@ -30,6 +30,7 @@
     "moduleResolution": "bundler",                       /* Specify how TypeScript looks up a file from a given module specifier. */
     "baseUrl": "./",                                     /* Specify the base directory to resolve non-relative module names. */
     "paths": {
+      "src/*": ["src/*"],
       // "@/*": ["./src/*"],
       ":bookcars-types": ["./bookcars-types"]
     },                                                   /* Specify a set of entries that re-map imports to additional lookup locations. */
@@ -109,9 +110,11 @@
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
   },
+  "include": ["src", "api", "types"],
   "exclude": [
     "dist",
-    "node_modules"
+    "node_modules",
+    "__tests__"
   ],
   "references": [
     { "path": "./bookcars-types" }
