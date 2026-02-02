@@ -52,9 +52,6 @@ export const expireAt = 'expireAt'
  */
 export const WEBSITE_NAME = __env__('BC_WEBSITE_NAME', false, 'BookCars')
 
-
-export const VERCEL = __env__('BC_VERCEL', false)
-
 /**
  * Indicate whether we are in CI environment or not.
  *
