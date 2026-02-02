@@ -102,6 +102,10 @@ export const CERTIFICATE = __env__('BC_CERTIFICATE', HTTPS)
  * @type {string}
  */
 export const DB_URI = __env__('BC_DB_URI', false, 'mongodb://127.0.0.1:27017/bookcars?authSource=admin&appName=bookcars')
+console.log('BC_DB_URI exists?', !!process.env.BC_DB_URI)
+console.log('BC_DB_URI length:', (process.env.BC_DB_URI || '').length)
+console.log('BC_DB_URI has spaces?', /\s/.test(process.env.BC_DB_URI || ''))
+
 
 /**
  * Indicate whether MongoDB SSL is enabled or not.
