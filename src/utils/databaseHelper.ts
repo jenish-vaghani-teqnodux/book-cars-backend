@@ -1,4 +1,4 @@
-import mongoose, { Model } from 'mongoose'
+import mongoose, { ConnectOptions, Model } from 'mongoose'
 import * as env from '../config/env.config'
 import * as logger from './logger'
 import Booking, { BOOKING_EXPIRE_AT_INDEX_NAME } from '../models/Booking'
@@ -19,14 +19,6 @@ import * as databaseTTLHelper from './databaseTTLHelper'
 import * as databaseLangHelper from './databaseLangHelper'
 import * as settingController from '../controllers/settingController'
 
-declare global {
-  var mongooseConn: typeof mongoose | null
-  var mongoosePromise: Promise<typeof mongoose> | null
-}
-
-global.mongooseConn ||= null
-global.mongoosePromise ||= null
-
 /**
  * Tracks the current database connection status to prevent redundant connections.
  * Set to true after a successful connection is established via `connect()`,
@@ -34,6 +26,8 @@ global.mongoosePromise ||= null
  * 
  * @type {boolean}
  */
+let isConnected = false
+
 /**
  * Connects to database.
  *
@@ -43,41 +37,32 @@ global.mongoosePromise ||= null
  * @param {boolean} debug 
  * @returns {Promise<boolean>} 
  */
-export const connect = async (
-  uri: string,
-  ssl: boolean,
-  debug: boolean
-): Promise<boolean> => {
-  logger.info('DB_*_*_*_URI', uri)
-  console.log('DB_____URI', uri)
-  console.error('DB_!_!_!_URI', uri)
-  
-  if (!uri) {
-    throw new Error('BC_DB_URI is missing')
-  }
-
-  if (global.mongooseConn) {
+export const connect = async (uri: string, ssl: boolean, debug: boolean): Promise<boolean> => {
+  if (isConnected) {
     return true
   }
 
-  if (!global.mongoosePromise) {
-    mongoose.set('bufferCommands', false)
-    mongoose.set('debug', debug)
+  const options: ConnectOptions = ssl
+    ? {
+      tls: true,
+      tlsCertificateKeyFile: env.DB_SSL_CERT,
+      tlsCAFile: env.DB_SSL_CA,
+    }
+    : {}
 
-    global.mongoosePromise = mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 30000,
-      connectTimeoutMS: 30000,
-    })
-  }
+  mongoose.set('debug', debug)
+  mongoose.set('autoIndex', process.env.NODE_ENV !== 'production')
+  mongoose.Promise = globalThis.Promise
 
   try {
-    global.mongooseConn = await global.mongoosePromise
+    await mongoose.connect(uri, options)
+    await mongoose.connection.asPromise() // Explicitly wait for connection to be open
     logger.info('Database connected')
+    isConnected = true
     return true
   } catch (err) {
-    global.mongoosePromise = null
-    logger.error('Database connection failed', err)
-    throw err
+    logger.error(' Database connection failed:', err instanceof Error ? err.message : err)
+    return false
   }
 }
 
@@ -90,6 +75,7 @@ export const connect = async (
  */
 export const close = async (force = false): Promise<void> => {
   await mongoose.connection.close(force)
+  isConnected = false
   logger.info('Database connection closed')
 }
 

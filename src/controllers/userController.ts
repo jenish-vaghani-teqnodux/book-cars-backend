@@ -709,8 +709,6 @@ export const socialSignin = async (req: Request, res: Response) => {
  * @returns {unknown}
  */
 export const signout = async (req: Request, res: Response) => {
-  console.log('ABCD001', 'jjjjjjj__________lllll')
-  
   const cookieName = authHelper.getAuthCookieName(req)
 
   res
