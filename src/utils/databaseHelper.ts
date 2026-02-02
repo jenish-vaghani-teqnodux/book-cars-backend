@@ -48,6 +48,9 @@ export const connect = async (
   ssl: boolean,
   debug: boolean
 ): Promise<boolean> => {
+  logger.info('DB_*_*_*_URI', uri)
+  console.log('DB_____URI', uri);
+  
   if (!uri) {
     throw new Error('BC_DB_URI is missing')
   }
