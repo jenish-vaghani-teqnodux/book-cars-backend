@@ -2,9 +2,6 @@ import winston, { format, transports } from 'winston'
 import * as helper from './helper'
 import * as env from '../config/env.config'
 import * as Sentry from '@sentry/node'
-import path from 'path'
-
-const isVercel = env.VERCEL
 
 let enableLogs = true
 let enableErrorLogs = true
@@ -19,14 +16,6 @@ const loggerTransports: winston.transport[] = [
     format: format.combine(format.colorize(), logFormat),
   }),
 ]
-
-// ✅ Only add file transports when NOT running on Vercel
-if (!isVercel) {
-  loggerTransports.push(
-    new transports.File({ filename: path.join('logs', 'error.log'), level: 'error', format: logFormat }),
-    new transports.File({ filename: path.join('logs', 'all.log'), level: 'info', format: logFormat })
-  )
-}
 
 const logger = winston.createLogger({
   level: 'info',
