@@ -5,8 +5,10 @@ const babel = (api) => {
     [
       'module-resolver',
       {
+        root: ['./dist/src'],
         alias: {
           ':bookcars-types': './bookcars-types',
+          src: './dist/src',
         },
       },
     ],
@@ -23,7 +25,7 @@ const babel = (api) => {
         {
           modules: false,
           targets: {
-            node: 'current',
+            node: '18',
           },
         },
       ],
