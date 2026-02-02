@@ -72,6 +72,6 @@ if (env.ENABLE_SENTRY) {
   Sentry.setupExpressErrorHandler(app)
 }
 
-setLanguage(env.DEFAULT_LANGUAGE)
+export const initPromise = setLanguage(env.DEFAULT_LANGUAGE)
 
 export default app
