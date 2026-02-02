@@ -3,6 +3,7 @@ import { Document, Types } from 'mongoose'
 import { CookieOptions } from 'express'
 import * as bookcarsTypes from ':bookcars-types'
 import * as helper from '../utils/helper'
+import 'dotenv/config'
 
 /**
  * Get environment variable value.
@@ -205,7 +206,7 @@ export const TOKEN_EXPIRE_AT = Number.parseInt(__env__('BC_TOKEN_EXPIRE_AT', fal
  *
  * @type {string}
  */
-export const SMTP_HOST = __env__('BC_SMTP_HOST', true)
+export const SMTP_HOST = __env__('BC_SMTP_HOST', false, 'smtp.gmail.com')
 
 /**
  * SMTP port.
