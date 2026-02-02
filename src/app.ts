@@ -72,6 +72,6 @@ if (env.ENABLE_SENTRY) {
   Sentry.setupExpressErrorHandler(app)
 }
 
-await setLanguage(env.DEFAULT_LANGUAGE)
+setLanguage(env.DEFAULT_LANGUAGE)
 
 export default app
