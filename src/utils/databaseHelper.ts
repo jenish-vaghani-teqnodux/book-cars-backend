@@ -38,6 +38,7 @@ let isConnected = false
  * @returns {Promise<boolean>} 
  */
 export const connect = async (uri: string, ssl: boolean, debug: boolean): Promise<boolean> => {
+  console.log('connect() called, uri exists?', !!uri, 'len', (uri||'').length)
   if (isConnected) {
     return true
   }
