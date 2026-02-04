@@ -16,13 +16,21 @@ const createTransporter = async (): Promise<nodemailer.Transporter> => {
   }
 
   const transporterOptions: SMTPTransport.Options = {
-    host: env.SMTP_HOST,
-    port: env.SMTP_PORT,
-    auth: {
-      user: env.SMTP_USER,
-      pass: env.SMTP_PASS,
-    },
-  }
+  host: env.SMTP_HOST,         
+  port: env.SMTP_PORT,         
+  secure: false,              
+  auth: {
+    user: env.SMTP_USER,
+    pass: env.SMTP_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false, // sometimes helps on hosted env
+  },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+}
+
 
   return nodemailer.createTransport(transporterOptions)
 }
