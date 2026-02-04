@@ -3,13 +3,13 @@ import * as helper from '../utils/helper'
 import * as env from '../config/env.config'
 import * as logger from '../utils/logger'
 
-console.log('ADMIN_HOST', env.ADMIN_HOST)
+// console.log('ADMIN_HOST', env.ADMIN_HOST)
 
 
-const whitelist = [
-  helper.trimEnd(env.ADMIN_HOST, '/'),
-  helper.trimEnd(env.FRONTEND_HOST, '/'),
-]
+// const whitelist = [
+//   helper.trimEnd(env.ADMIN_HOST, '/'),
+//   helper.trimEnd(env.FRONTEND_HOST, '/'),
+// ]
 
 /**
  * CORS configuration.
@@ -18,14 +18,21 @@ const whitelist = [
  */
 const CORS_CONFIG: cors.CorsOptions = {
   origin(origin, callback) {
-    if (!origin || whitelist.indexOf(helper.trimEnd(origin, '/')) !== -1) {
-      callback(null, true)
-    } else {
-      const message = `Not allowed by CORS: ${origin}`
-      logger.error(message)
-      callback(new Error(message))
-    }
-  },
+  const whitelist = [
+    helper.trimEnd(env.ADMIN_HOST, '/'),
+    helper.trimEnd(env.FRONTEND_HOST, '/'),
+  ]
+
+  logger.error(`CORS DEBUG origin=${origin} whitelist=${JSON.stringify(whitelist)}`)
+
+  if (!origin || whitelist.indexOf(helper.trimEnd(origin, '/')) !== -1) {
+    callback(null, true)
+  } else {
+    const message = `Not allowed by CORS: ${origin}`
+    logger.error(message)
+    callback(new Error(message))
+  }
+},
   credentials: true,
   optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
 }
