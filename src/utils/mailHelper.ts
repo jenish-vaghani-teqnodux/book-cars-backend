@@ -26,9 +26,9 @@ const createTransporter = async (): Promise<nodemailer.Transporter> => {
   tls: {
     rejectUnauthorized: false, // sometimes helps on hosted env
   },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
+  connectionTimeout: 30000,
+  greetingTimeout: 30000,
+  socketTimeout: 30000,
 }
 
 
