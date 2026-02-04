@@ -82,8 +82,8 @@ export const create = async (req: Request, res: Response) => {
 
             // mail
             if (admin.enableEmailNotifications) {
-              const mailOptions: nodemailer.SendMailOptions = {
-                from: env.SMTP_FROM,
+              const mailOptions: mailHelper.SendMailOptionsCompat = {
+                from: env.RESEND_FROM,
                 to: admin.email,
                 subject: message,
                 html: `<p>

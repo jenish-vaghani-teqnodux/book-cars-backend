@@ -45,6 +45,10 @@ export const LANGUAGES = [
  */
 export const expireAt = 'expireAt'
 
+export const RESEND_API_KEY = __env__('BC_RESEND_API_KEY', false)
+
+export const RESEND_FROM = __env__('BC_RESEND_FROM', false)
+
 /**
  * Website Name.
  *
@@ -200,41 +204,6 @@ export const JWT_EXPIRE_AT = Number.parseInt(__env__('BC_JWT_EXPIRE_AT', false, 
  * @type {number}
  */
 export const TOKEN_EXPIRE_AT = Number.parseInt(__env__('BC_TOKEN_EXPIRE_AT', false, '86400'), 10)
-
-/**
- * SMTP host.
- *
- * @type {string}
- */
-export const SMTP_HOST = __env__('BC_SMTP_HOST', false, 'smtp.gmail.com')
-
-/**
- * SMTP port.
- *
- * @type {number}
- */
-export const SMTP_PORT = Number.parseInt(__env__('BC_SMTP_PORT', true), 10)
-
-/**
- * SMTP username.
- *
- * @type {string}
- */
-export const SMTP_USER = __env__('BC_SMTP_USER', true)
-
-/**
- * SMTP password.
- *
- * @type {string}
- */
-export const SMTP_PASS = __env__('BC_SMTP_PASS', true)
-
-/**
- * SMTP from email.
- *
- * @type {string}
- */
-export const SMTP_FROM = __env__('BC_SMTP_FROM', true)
 
 /**
  * AWS_ACCESS_KEY from aws.

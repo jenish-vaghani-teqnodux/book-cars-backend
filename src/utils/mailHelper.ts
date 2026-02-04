@@ -1,49 +1,40 @@
-import * as nodemailer from 'nodemailer'
-import SMTPTransport from 'nodemailer/lib/smtp-transport'
+import { Resend } from 'resend'
 import * as env from '../config/env.config'
+import * as logger from '../utils/logger'
 
-const createTransporter = async (): Promise<nodemailer.Transporter> => {
-  if (env.CI) {
-    const testAccount = await nodemailer.createTestAccount()
-    return nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass,
-      },
-    })
+const resend = new Resend(env.RESEND_API_KEY)
+
+export type SendMailOptionsCompat = {
+  to: string | string[];
+  subject: string;
+  html?: string;
+  text?: string;
+  from?: string;
+};
+
+export const sendMail = async (mailOptions: SendMailOptionsCompat) => {
+  try {
+    const to = Array.isArray(mailOptions.to) ? mailOptions.to : [mailOptions.to]
+
+    const payload = {
+      from: mailOptions.from || env.RESEND_FROM,
+      to,
+      subject: mailOptions.subject,
+      ...(mailOptions.html ? { html: mailOptions.html } : {}),
+      ...(mailOptions.text ? { text: mailOptions.text } : {}),
+    }
+
+    // must have at least html or text
+    if (!payload.html && !payload.text) {
+      payload.text = ''
+    }
+
+    const response = await resend.emails.send(payload as any)
+
+    logger.info('Email sent via Resend', response)
+    return response
+  } catch (error: any) {
+    logger.error('Email send failed', error)
+    throw new Error('Email send failed: ' + (error?.message || String(error)))
   }
-
-  const transporterOptions: SMTPTransport.Options = {
-  host: env.SMTP_HOST,         
-  port: env.SMTP_PORT,         
-  secure: false,              
-  auth: {
-    user: env.SMTP_USER,
-    pass: env.SMTP_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false, // sometimes helps on hosted env
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
-}
-
-
-  return nodemailer.createTransport(transporterOptions)
-}
-
-/**
- * Sends an email using either real SMTP credentials or a test account.
- *
- * @param mailOptions - Email content and metadata
- * @returns A promise resolving to the sending result
- */
-export const sendMail = async (
-  mailOptions: nodemailer.SendMailOptions
-): Promise<nodemailer.SentMessageInfo> => {
-  const transporter = await createTransporter()
-  return transporter.sendMail(mailOptions)
 }

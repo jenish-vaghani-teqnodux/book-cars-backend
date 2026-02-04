@@ -83,8 +83,8 @@ export const notify = async (driver: env.User, bookingId: string, user: env.User
 
   // mail
   if (user.enableEmailNotifications) {
-    const mailOptions: nodemailer.SendMailOptions = {
-      from: env.SMTP_FROM,
+    const mailOptions: mailHelper.SendMailOptionsCompat = {
+      from: env.RESEND_FROM,
       to: user.email,
       subject: message,
       html: `<p>
@@ -149,8 +149,8 @@ export const confirm = async (user: env.User, supplier: env.User, booking: env.B
     }
   }
 
-  const mailOptions: nodemailer.SendMailOptions = {
-    from: env.SMTP_FROM,
+  const mailOptions: mailHelper.SendMailOptionsCompat = {
+    from: env.RESEND_FROM,
     to: user.email,
     subject: `${i18n.t('BOOKING_CONFIRMED_SUBJECT_PART1')} ${booking._id} ${i18n.t('BOOKING_CONFIRMED_SUBJECT_PART2')}`,
     html:
@@ -234,8 +234,8 @@ export const checkout = async (req: Request, res: Response) => {
 
       i18n.locale = user.language
 
-      const mailOptions: nodemailer.SendMailOptions = {
-        from: env.SMTP_FROM,
+      const mailOptions: mailHelper.SendMailOptionsCompat = {
+        from: env.RESEND_FROM,
         to: user.email,
         subject: i18n.t('ACCOUNT_ACTIVATION_SUBJECT'),
         html: `<p>
@@ -412,8 +412,8 @@ const notifyDriver = async (booking: env.Booking) => {
 
   // mail
   if (driver.enableEmailNotifications) {
-    const mailOptions: nodemailer.SendMailOptions = {
-      from: env.SMTP_FROM,
+    const mailOptions: mailHelper.SendMailOptionsCompat = {
+      from: env.RESEND_FROM,
       to: driver.email,
       subject: message,
       html: `<p>

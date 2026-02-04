@@ -4,7 +4,6 @@ import { nanoid } from 'nanoid'
 import escapeStringRegexp from 'escape-string-regexp'
 import mongoose from 'mongoose'
 import { CookieOptions, Request, Response } from 'express'
-import nodemailer from 'nodemailer'
 import axios from 'axios'
 import * as bookcarsTypes from ':bookcars-types'
 import i18n from '../lang/i18n'
@@ -98,8 +97,8 @@ const _signup = async (req: Request, res: Response, userType: bookcarsTypes.User
 
     const activationLink = `http${env.HTTPS ? 's' : ''}://${req.headers.host}/api/confirm-email/${user.email}/${token.token}`
 
-    const mailOptions: nodemailer.SendMailOptions = {
-      from: env.SMTP_FROM,
+    const mailOptions: mailHelper.SendMailOptionsCompat = {
+      from: env.RESEND_FROM,
       to: user.email,
       subject: i18n.t('ACCOUNT_ACTIVATION_SUBJECT'),
       html:
@@ -251,8 +250,8 @@ export const create = async (req: Request, res: Response) => {
     // Send email
     i18n.locale = user.language
 
-    const mailOptions: nodemailer.SendMailOptions = {
-      from: env.SMTP_FROM,
+    const mailOptions: mailHelper.SendMailOptionsCompat = {
+      from: env.RESEND_FROM,
       to: user.email,
       subject: i18n.t('ACCOUNT_ACTIVATION_SUBJECT'),
       html:
@@ -402,8 +401,8 @@ export const resend = async (req: Request, res: Response) => {
         reset ? 'reset-password' : 'activate',
       )}/?u=${encodeURIComponent(user._id.toString())}&e=${encodeURIComponent(user.email)}&t=${encodeURIComponent(token.token)}`
 
-      const mailOptions: nodemailer.SendMailOptions = {
-        from: env.SMTP_FROM,
+      const mailOptions: mailHelper.SendMailOptionsCompat = {
+        from: env.RESEND_FROM,
         to: user.email,
         subject: reset ? i18n.t('PASSWORD_RESET_SUBJECT') : i18n.t('ACCOUNT_ACTIVATION_SUBJECT'),
         html:
@@ -958,8 +957,8 @@ export const resendLink = async (req: Request, res: Response) => {
 
     const activateLink = `http${env.HTTPS ? 's' : ''}://${req.headers.host}/api/confirm-email/${user.email}/${token.token}`
 
-    const mailOptions: nodemailer.SendMailOptions = {
-      from: env.SMTP_FROM,
+    const mailOptions: mailHelper.SendMailOptionsCompat = {
+      from: env.RESEND_FROM,
       to: user.email,
       subject: i18n.t('ACCOUNT_ACTIVATION_SUBJECT'),
       html:
@@ -1642,8 +1641,8 @@ export const sendEmail = async (req: Request, res: Response) => {
     const { body }: { body: bookcarsTypes.SendEmailPayload } = req
     const { from, to, subject, message, isContactForm } = body
 
-    const mailOptions: nodemailer.SendMailOptions = {
-      from: env.SMTP_FROM,
+    const mailOptions: mailHelper.SendMailOptionsCompat = {
+      from: env.RESEND_FROM,
       to,
       subject: isContactForm ? i18n.t('CONTACT_SUBJECT') : subject,
       html:
