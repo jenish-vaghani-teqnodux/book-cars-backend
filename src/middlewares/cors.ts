@@ -3,6 +3,9 @@ import * as helper from '../utils/helper'
 import * as env from '../config/env.config'
 import * as logger from '../utils/logger'
 
+console.log('ADMIN_HOST', env.ADMIN_HOST)
+
+
 const whitelist = [
   helper.trimEnd(env.ADMIN_HOST, '/'),
   helper.trimEnd(env.FRONTEND_HOST, '/'),
