@@ -6,7 +6,7 @@ export type SendMailOptionsCompat = {
   subject: string;
   html?: string;
   text?: string;
-  from?: string;
+  from?: string; // user email -> reply_to
 };
 
 const asArray = (v: string | string[]) => (Array.isArray(v) ? v : [v])
@@ -14,29 +14,32 @@ const asArray = (v: string | string[]) => (Array.isArray(v) ? v : [v])
 export const sendMail = async (mailOptions: SendMailOptionsCompat) => {
   try {
     if (!env.SENDGRID_API_KEY) {
-      throw new Error('SENDGRID_API_KEY is missing in env')
-    }
+  throw new Error('SENDGRID_API_KEY is missing in env')
+}
+
+if (!env.MAIL_FROM) {
+  throw new Error('MAIL_FROM is missing in env (must be verified in SendGrid)')
+}
+
 
     const to = asArray(mailOptions.to)
-
     const html = mailOptions.html
     const text = mailOptions.text ?? (!html ? '' : undefined)
 
-    const fromEmail = mailOptions.from || env.MAIL_FROM
-    if (!fromEmail) {
-      throw new Error('MAIL_FROM is missing in env and mailOptions.from not provided')
+    const payload: any = {
+      personalizations: [{ to: to.map(email => ({ email })) }],
+      from: { email: env.MAIL_FROM }, // ✅ always verified sender
+      subject: mailOptions.subject,
+      content: [
+        ...(html ? [{ type: 'text/html', value: html }] : []),
+        ...(text !== undefined ? [{ type: 'text/plain', value: text }] : []),
+      ],
     }
 
-    const payload = {
-  personalizations: [{ to: to.map(email => ({ email })) }],
-  from: { email: env.MAIL_FROM }, 
-  reply_to: mailOptions.from,     
-  subject: mailOptions.subject,
-  content: [
-    ...(html ? [{ type: 'text/html', value: html }] : []),
-    ...(text !== undefined ? [{ type: 'text/plain', value: text }] : []),
-  ],
-}
+    // ✅ reply_to only when user email is provided
+    if (mailOptions.from) {
+      payload.reply_to = { email: mailOptions.from }
+    }
 
     const resp = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
