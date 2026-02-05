@@ -28,14 +28,15 @@ export const sendMail = async (mailOptions: SendMailOptionsCompat) => {
     }
 
     const payload = {
-      personalizations: [{ to: to.map((email) => ({ email })) }],
-      from: { email: fromEmail },
-      subject: mailOptions.subject,
-      content: [
-        ...(html ? [{ type: 'text/html', value: html }] : []),
-        ...(text !== undefined ? [{ type: 'text/plain', value: text }] : []),
-      ],
-    }
+  personalizations: [{ to: to.map(email => ({ email })) }],
+  from: { email: env.MAIL_FROM }, 
+  reply_to: mailOptions.from,     
+  subject: mailOptions.subject,
+  content: [
+    ...(html ? [{ type: 'text/html', value: html }] : []),
+    ...(text !== undefined ? [{ type: 'text/plain', value: text }] : []),
+  ],
+}
 
     const resp = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
