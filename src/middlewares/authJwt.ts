@@ -18,10 +18,7 @@ const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
   let token: string
   const isAdmin = authHelper.isAdmin(req)
   const isFrontend = authHelper.isFrontend(req)
-
-  console.log('isAdmin', isAdmin)
   
-
   if (isAdmin) {
     token = req.signedCookies[env.ADMIN_AUTH_COOKIE_NAME] as string // admin
   } else if (isFrontend) {
@@ -29,7 +26,8 @@ const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
   } else {
     token = req.headers[env.X_ACCESS_TOKEN] as string // mobile app and unit tests
   }
-
+  console.log('token00', token || '')
+  
   if (token) {
     // Check token
     try {
