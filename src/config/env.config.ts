@@ -45,9 +45,9 @@ export const LANGUAGES = [
  */
 export const expireAt = 'expireAt'
 
-export const RESEND_API_KEY = __env__('BC_RESEND_API_KEY', false)
+export const SENDGRID_API_KEY = __env__('BC_SENDGRID_API_KEY', false)
 
-export const RESEND_FROM = __env__('BC_RESEND_FROM', false)
+export const MAIL_FROM = __env__('BC_MAIL_FROM', false)
 
 /**
  * Website Name.

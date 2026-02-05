@@ -1,8 +1,5 @@
-import { Resend } from 'resend'
 import * as env from '../config/env.config'
 import * as logger from '../utils/logger'
-
-const resend = new Resend(env.RESEND_API_KEY)
 
 export type SendMailOptionsCompat = {
   to: string | string[];
@@ -12,27 +9,51 @@ export type SendMailOptionsCompat = {
   from?: string;
 };
 
+const asArray = (v: string | string[]) => (Array.isArray(v) ? v : [v])
+
 export const sendMail = async (mailOptions: SendMailOptionsCompat) => {
   try {
-    const to = Array.isArray(mailOptions.to) ? mailOptions.to : [mailOptions.to]
+    if (!env.SENDGRID_API_KEY) {
+      throw new Error('SENDGRID_API_KEY is missing in env')
+    }
+
+    const to = asArray(mailOptions.to)
+
+    const html = mailOptions.html
+    const text = mailOptions.text ?? (!html ? '' : undefined)
+
+    const fromEmail = mailOptions.from || env.MAIL_FROM
+    if (!fromEmail) {
+      throw new Error('MAIL_FROM is missing in env and mailOptions.from not provided')
+    }
 
     const payload = {
-      from: mailOptions.from || env.RESEND_FROM,
-      to,
+      personalizations: [{ to: to.map((email) => ({ email })) }],
+      from: { email: fromEmail },
       subject: mailOptions.subject,
-      ...(mailOptions.html ? { html: mailOptions.html } : {}),
-      ...(mailOptions.text ? { text: mailOptions.text } : {}),
+      content: [
+        ...(html ? [{ type: 'text/html', value: html }] : []),
+        ...(text !== undefined ? [{ type: 'text/plain', value: text }] : []),
+      ],
     }
 
-    // must have at least html or text
-    if (!payload.html && !payload.text) {
-      payload.text = ''
+    const resp = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => '')
+      logger.error('Email send failed via SendGrid', { status: resp.status, errText })
+      throw new Error(`SendGrid error ${resp.status}: ${errText}`)
     }
 
-    const response = await resend.emails.send(payload as any)
-
-    logger.info('Email sent via Resend', response)
-    return response
+    logger.info('Email sent via SendGrid', { to, subject: mailOptions.subject })
+    return { ok: true, provider: 'sendgrid' }
   } catch (error: any) {
     logger.error('Email send failed', error)
     throw new Error('Email send failed: ' + (error?.message || String(error)))
