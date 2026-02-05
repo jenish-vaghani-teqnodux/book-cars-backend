@@ -41,6 +41,11 @@ if (!env.MAIL_FROM) {
       payload.reply_to = { email: mailOptions.from }
     }
 
+    console.log('SendGrid payload check', {
+  reply_to_type: typeof payload.reply_to,
+  reply_to_value: payload.reply_to,
+})
+
     const resp = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
       headers: {
