@@ -98,7 +98,7 @@ const _signup = async (req: Request, res: Response, userType: bookcarsTypes.User
     const activationLink = `http${env.HTTPS ? 's' : ''}://${req.headers.host}/api/confirm-email/${user.email}/${token.token}`
 
     const mailOptions: mailHelper.SendMailOptionsCompat = {
-      from: env.RESEND_FROM,
+      from: env.MAIL_FROM,
       to: user.email,
       subject: i18n.t('ACCOUNT_ACTIVATION_SUBJECT'),
       html:
@@ -251,7 +251,7 @@ export const create = async (req: Request, res: Response) => {
     i18n.locale = user.language
 
     const mailOptions: mailHelper.SendMailOptionsCompat = {
-      from: env.RESEND_FROM,
+      from: env.MAIL_FROM,
       to: user.email,
       subject: i18n.t('ACCOUNT_ACTIVATION_SUBJECT'),
       html:
@@ -402,7 +402,7 @@ export const resend = async (req: Request, res: Response) => {
       )}/?u=${encodeURIComponent(user._id.toString())}&e=${encodeURIComponent(user.email)}&t=${encodeURIComponent(token.token)}`
 
       const mailOptions: mailHelper.SendMailOptionsCompat = {
-        from: env.RESEND_FROM,
+        from: env.MAIL_FROM,
         to: user.email,
         subject: reset ? i18n.t('PASSWORD_RESET_SUBJECT') : i18n.t('ACCOUNT_ACTIVATION_SUBJECT'),
         html:
@@ -958,7 +958,7 @@ export const resendLink = async (req: Request, res: Response) => {
     const activateLink = `http${env.HTTPS ? 's' : ''}://${req.headers.host}/api/confirm-email/${user.email}/${token.token}`
 
     const mailOptions: mailHelper.SendMailOptionsCompat = {
-      from: env.RESEND_FROM,
+      from: env.MAIL_FROM,
       to: user.email,
       subject: i18n.t('ACCOUNT_ACTIVATION_SUBJECT'),
       html:
@@ -1642,7 +1642,7 @@ export const sendEmail = async (req: Request, res: Response) => {
     const { from, to, subject, message, isContactForm } = body
 
     const mailOptions: mailHelper.SendMailOptionsCompat = {
-      from: env.RESEND_FROM,
+      from: env.MAIL_FROM,
       to,
       subject: isContactForm ? i18n.t('CONTACT_SUBJECT') : subject,
       html:
