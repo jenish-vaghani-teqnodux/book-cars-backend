@@ -6,63 +6,49 @@ export type SendMailOptionsCompat = {
   subject: string;
   html?: string;
   text?: string;
-  from?: string; // user email -> reply_to
+  from?: string;
 };
 
 const asArray = (v: string | string[]) => (Array.isArray(v) ? v : [v])
 
 export const sendMail = async (mailOptions: SendMailOptionsCompat) => {
   try {
-    if (!env.SENDGRID_API_KEY) {
-  throw new Error('SENDGRID_API_KEY is missing in env')
-}
-
-if (!env.MAIL_FROM) {
-  throw new Error('MAIL_FROM is missing in env (must be verified in SendGrid)')
-}
-
+    if (!env.BREVO_API_KEY) {
+      throw new Error('BREVO_API_KEY is missing in env')
+    }
 
     const to = asArray(mailOptions.to)
-    const html = mailOptions.html
-    const text = mailOptions.text ?? (!html ? '' : undefined)
 
-    const payload: any = {
-      personalizations: [{ to: to.map(email => ({ email })) }],
-      from: { email: env.MAIL_FROM }, // ✅ always verified sender
+    const fromEmail = mailOptions.from || env.MAIL_FROM
+    if (!fromEmail) {
+      throw new Error('MAIL_FROM is missing')
+    }
+
+    const payload = {
+      sender: { email: fromEmail },
+      to: to.map(email => ({ email })),
       subject: mailOptions.subject,
-      content: [
-        ...(html ? [{ type: 'text/html', value: html }] : []),
-        ...(text !== undefined ? [{ type: 'text/plain', value: text }] : []),
-      ],
+      htmlContent: mailOptions.html,
+      textContent: mailOptions.text,
     }
 
-    // ✅ reply_to only when user email is provided
-    if (mailOptions.from) {
-      payload.reply_to = { email: mailOptions.from }
-    }
-
-    console.log('SendGrid payload check', {
-  reply_to_type: typeof payload.reply_to,
-  reply_to_value: payload.reply_to,
-})
-
-    const resp = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${env.SENDGRID_API_KEY}`,
+        'api-key': env.BREVO_API_KEY,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
     })
 
     if (!resp.ok) {
-      const errText = await resp.text().catch(() => '')
-      logger.error('Email send failed via SendGrid', { status: resp.status, errText })
-      throw new Error(`SendGrid error ${resp.status}: ${errText}`)
+      const errText = await resp.text()
+      logger.error('Email send failed via Brevo', { status: resp.status, errText })
+      throw new Error(`Brevo error ${resp.status}: ${errText}`)
     }
 
-    logger.info('Email sent via SendGrid', { to, subject: mailOptions.subject })
-    return { ok: true, provider: 'sendgrid' }
+    logger.info('Email sent via Brevo', { to, subject: mailOptions.subject })
+    return { ok: true, provider: 'brevo' }
   } catch (error: any) {
     logger.error('Email send failed', error)
     throw new Error('Email send failed: ' + (error?.message || String(error)))

@@ -45,7 +45,7 @@ export const LANGUAGES = [
  */
 export const expireAt = 'expireAt'
 
-export const SENDGRID_API_KEY = __env__('BC_SENDGRID_API_KEY', false)
+export const BREVO_API_KEY = __env__('BC_BREVO_API_KEY', false)
 
 export const MAIL_FROM = __env__('BC_MAIL_FROM', false)
 
