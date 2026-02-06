@@ -20,6 +20,7 @@ const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
   const isFrontend = authHelper.isFrontend(req)
 
   console.log('isFrontend', isFrontend)
+  console.log('isAdmin', isAdmin)
   
 
   if (isAdmin) {
