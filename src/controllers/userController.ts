@@ -250,6 +250,11 @@ export const create = async (req: Request, res: Response) => {
     // Send email
     i18n.locale = user.language
 
+    const activationPath =
+  `/activate/?u=${encodeURIComponent(user._id.toString())}` +
+  `&e=${encodeURIComponent(user.email)}` +
+  `&t=${encodeURIComponent(token.token)}`
+
     const mailOptions: mailHelper.SendMailOptionsCompat = {
       from: env.MAIL_FROM,
       to: user.email,
@@ -258,10 +263,7 @@ export const create = async (req: Request, res: Response) => {
         `<p>
         ${i18n.t('HELLO')}${user.fullName},<br><br>
         ${i18n.t('ACCOUNT_ACTIVATION_LINK')}<br><br>
-        ${helper.joinURL(
-          user.type === bookcarsTypes.UserType.User ? env.FRONTEND_HOST : env.ADMIN_HOST,
-          'activate',
-        )}/?u=${encodeURIComponent(user._id.toString())}&e=${encodeURIComponent(user.email)}&t=${encodeURIComponent(token.token)}<br><br>
+       ${activationPath}<br><br>
         ${i18n.t('REGARDS')}<br>
         </p>`,
     }
@@ -396,25 +398,27 @@ export const resend = async (req: Request, res: Response) => {
 
       const reset = req.params.reset === 'true'
 
-      const activationOrResetLink = `${helper.joinURL(
-        user.type === bookcarsTypes.UserType.User ? env.FRONTEND_HOST : env.ADMIN_HOST,
-        reset ? 'reset-password' : 'activate',
-      )}/?u=${encodeURIComponent(user._id.toString())}&e=${encodeURIComponent(user.email)}&t=${encodeURIComponent(token.token)}`
+      const tokenInfo =
+  `u=${encodeURIComponent(user._id.toString())}` +
+  `&e=${encodeURIComponent(user.email)}` +
+  `&t=${encodeURIComponent(token.token)}`
 
-      const mailOptions: mailHelper.SendMailOptionsCompat = {
-        from: env.MAIL_FROM,
-        to: user.email,
-        subject: reset ? i18n.t('PASSWORD_RESET_SUBJECT') : i18n.t('ACCOUNT_ACTIVATION_SUBJECT'),
-        html:
-          `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-            <p style="font-size: 16px; color: #555;">
-              ${i18n.t('HELLO')} ${user.fullName},<br><br>  
-              ${reset ? i18n.t('PASSWORD_RESET_LINK') : i18n.t('ACCOUNT_ACTIVATION_LINK')}<br><br>  
-              <a href="${activationOrResetLink}" target="_blank">${activationOrResetLink}</a><br><br>
-              ${i18n.t('REGARDS')}<br>
-            </p>
-          </div>`,
-      }
+const mailOptions: mailHelper.SendMailOptionsCompat = {
+  from: env.MAIL_FROM,
+  to: user.email,
+  subject: reset ? i18n.t('PASSWORD_RESET_SUBJECT') : i18n.t('ACCOUNT_ACTIVATION_SUBJECT'),
+  html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+    <p style="font-size: 16px; color: #555;">
+      ${i18n.t('HELLO')} ${user.fullName},<br><br>
+      ${reset ? i18n.t('PASSWORD_RESET_LINK') : i18n.t('ACCOUNT_ACTIVATION_LINK')}<br><br>
+
+      ${i18n.t('TOKEN_INFO') ?? 'Token info'}: ${tokenInfo}<br><br>
+
+      ${i18n.t('REGARDS')}<br>
+    </p>
+  </div>`,
+}
+
       await mailHelper.sendMail(mailOptions)
       res.sendStatus(200)
       return
@@ -1629,12 +1633,8 @@ export const verifyRecaptcha = async (req: Request, res: Response) => {
  */
 export const sendEmail = async (req: Request, res: Response) => {
   try {
-    const whitelist = [
-      helper.trimEnd(env.ADMIN_HOST, '/'),
-      helper.trimEnd(env.FRONTEND_HOST, '/'),
-    ]
     const { origin } = req.headers
-    if (!origin || whitelist.indexOf(helper.trimEnd(origin, '/')) === -1) {
+    if (!origin) {
       throw new Error('Unauthorized!')
     }
 

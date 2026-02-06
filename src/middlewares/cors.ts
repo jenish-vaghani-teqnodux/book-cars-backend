@@ -1,12 +1,5 @@
 import cors from 'cors'
-import * as helper from '../utils/helper'
-import * as env from '../config/env.config'
 import * as logger from '../utils/logger'
-
-const whitelist = [
-  helper.trimEnd(env.ADMIN_HOST, '/'),
-  helper.trimEnd(env.FRONTEND_HOST, '/'),
-]
 
 /**
  * CORS configuration.
@@ -15,7 +8,7 @@ const whitelist = [
  */
 const CORS_CONFIG: cors.CorsOptions = {
   origin(origin, callback) {
-    if (!origin || whitelist.indexOf(helper.trimEnd(origin, '/')) !== -1) {
+    if (!origin) {
       callback(null, true)
     } else {
       const message = `Not allowed by CORS: ${origin}`

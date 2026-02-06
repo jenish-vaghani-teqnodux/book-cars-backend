@@ -312,13 +312,6 @@ export const CDN_LICENSES = __env__('BC_CDN_LICENSES', false)
 export const CDN_TEMP_LICENSES = __env__('BC_CDN_TEMP_LICENSES', false)
 
 /**
- * Admin host.
- *
- * @type {string}
- */
-export const ADMIN_HOST = __env__('BC_ADMIN_HOST', true)
-
-/**
  * Frontend host.
  *
  * @type {string}
