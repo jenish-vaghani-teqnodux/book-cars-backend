@@ -312,13 +312,6 @@ export const CDN_LICENSES = __env__('BC_CDN_LICENSES', false)
 export const CDN_TEMP_LICENSES = __env__('BC_CDN_TEMP_LICENSES', false)
 
 /**
- * Frontend host.
- *
- * @type {string}
- */
-export const FRONTEND_HOST = __env__('BC_FRONTEND_HOST', true)
-
-/**
  * Default language. Default is en. Available options: en, fr, es.
  *
  * @type {string}

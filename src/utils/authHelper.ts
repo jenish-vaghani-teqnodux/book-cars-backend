@@ -66,7 +66,10 @@ export const isAdmin = (req: Request): boolean => {
  * @param {Request} req
  * @returns {boolean}
  */
-export const isFrontend = (req: Request): boolean => !!req.headers.origin && helper.trimEnd(req.headers.origin, '/') === helper.trimEnd(env.FRONTEND_HOST, '/')
+export const isFrontend = (_req: Request): boolean => {
+  return true
+}
+
 
 /**
  * Get authentification cookie name.
