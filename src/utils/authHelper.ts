@@ -55,9 +55,9 @@ export const decryptJWT = async (input: string) => {
  * @returns {boolean}
  */
 export const isAdmin = (req: Request): boolean => {
-  return true
+  const origin = (req.headers.origin || req.headers.referer || '') as string
+  return origin.includes('3001')
 }
-
 
 /**
  * Check whether the request is from the frontend or not.
@@ -66,8 +66,9 @@ export const isAdmin = (req: Request): boolean => {
  * @param {Request} req
  * @returns {boolean}
  */
-export const isFrontend = (_req: Request): boolean => {
-  return true
+export const isFrontend = (req: Request): boolean => {
+  const origin = (req.headers.origin || req.headers.referer || '') as string
+  return origin.includes('3002')
 }
 
 
