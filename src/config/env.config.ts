@@ -205,6 +205,8 @@ export const JWT_EXPIRE_AT = Number.parseInt(__env__('BC_JWT_EXPIRE_AT', false, 
  */
 export const TOKEN_EXPIRE_AT = Number.parseInt(__env__('BC_TOKEN_EXPIRE_AT', false, '86400'), 10)
 
+export const FRONTEND_URL = __env__('BC_FRONTEND_URL', false, 'http://localhost:3002')
+
 /**
  * AWS_ACCESS_KEY from aws.
  *

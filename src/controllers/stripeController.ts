@@ -66,7 +66,7 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
         },
       ],
       mode: 'payment',
-      return_url: '/checkout-session/{CHECKOUT_SESSION_ID}',
+      return_url: `${env.FRONTEND_URL}/checkout-session/{CHECKOUT_SESSION_ID}`,
       customer: customer.id,
       locale: helper.getStripeLocale(locale),
       payment_intent_data: {
