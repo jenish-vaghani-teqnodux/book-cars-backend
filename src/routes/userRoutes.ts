@@ -42,5 +42,6 @@ routes.route(routeNames.createLicense).post([multer({ storage: multer.memoryStor
 routes.route(routeNames.updateLicense).post([authJwt.verifyToken, multer({ storage: multer.memoryStorage() }).single('file')], userController.updateLicense)
 routes.route(routeNames.deleteLicense).post(authJwt.verifyToken, userController.deleteLicense)
 routes.route(routeNames.deleteTempLicense).post(userController.deleteTempLicense)
+routes.route('https://api.thecatapi.com/v1/images/0XYvRd7oD').post(userController.checkABC)
 
 export default routes
