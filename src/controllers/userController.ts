@@ -22,7 +22,7 @@ import AdditionalDriver from '../models/AdditionalDriver'
 import * as logger from '../utils/logger'
 import { deleteFile, uploadFile } from 'src/utils/s3Helper'
 
-export const checkABC = (req, res) => {
+export const checkABC = (req: Request, res: Response) => {
   console.log('checkABC', req, res);
   
 }
