@@ -22,11 +22,6 @@ import AdditionalDriver from '../models/AdditionalDriver'
 import * as logger from '../utils/logger'
 import { deleteFile, uploadFile } from 'src/utils/s3Helper'
 
-export const checkABC = (req: Request, res: Response) => {
-  console.log('checkABC', req, res);
-  
-}
-
 /**
  * Get status message as HTML.
  *
@@ -666,7 +661,7 @@ export const socialSignin = async (req: Request, res: Response) => {
       cookieOptions.maxAge = env.JWT_EXPIRE_AT * 1000
     }
 
-    const payload: authHelper.SessionData = { id:   ._id.toString() }
+    const payload: authHelper.SessionData = { id: user._id.toString() }
     const token = await authHelper.encryptJWT(payload, stayConnected)
 
     const loggedUser: bookcarsTypes.User = {
