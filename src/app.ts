@@ -55,7 +55,7 @@ app.use(allowedMethods)
 app.use('/cdn', express.static(env.CDN_ROOT))
 
 app.get('/health', (req, res) => {
-    res.json({status: 'OK'})
+    res.json({status: 'OK', message: 'Server is Running....'})
 })
 
 app.use('/', supplierRoutes)
